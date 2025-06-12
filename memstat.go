@@ -82,6 +82,9 @@ func MemUtilization(ip, community string, timeout, retry int) (int, error) {
 		return GetCiscoControllerMem(ip, community, timeout, retry)
 	case "Hillstone":
 		return GetHillSoneMem(ip, community, timeout, retry)
+	case "ZXCTN_9000":
+		oid = "1.3.6.1.4.1.3902.3.6002.2.1.1.6"
+		return GetZteCpuMem(ip, community, oid, timeout, retry)
 	default:
 		err = errors.New(ip + " Switch Vendor is not defined")
 		return 0, err

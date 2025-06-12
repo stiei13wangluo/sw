@@ -132,6 +132,10 @@ func SysVendor(ip, community string, retry int, timeout int) (string, error) {
 		return "Hillstone", err
 	}
 
+	if strings.Contains(sysDescr, "ZXCTN 9000") {
+		return "ZXCTN_9000", err
+	}
+
 	return "", err
 }
 
