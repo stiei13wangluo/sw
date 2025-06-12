@@ -75,6 +75,9 @@ func CpuUtilization(ip, community string, timeout, retry int) (int, error) {
 	case "Cisco_Controller":
 		oid = "1.3.6.1.4.1.14179.1.1.5.1"
 		return getSnmpNextCpu(ip, community, oid, timeout, retry)
+	case "ZXCTN_9000":
+		oid = "1.3.6.1.4.1.3902.3.6002.2.1.1.7"
+		return GetZteCpuMem(ip, community, oid, timeout, retry)
 	default:
 		err = errors.New(ip + " Switch Vendor is not defined")
 		return 0, err
@@ -136,6 +139,49 @@ func getH3CHWcpumem(ip, community, oid string, timeout, retry int) (value int, e
 			break
 		}
 
+	}
+
+	return value, err
+}
+
+func GetZteCpuMem(ip, community, oid string, timeout, retry int) (value int, err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println(ip+" Recovered in CPUtilization", r)
+		}
+	}()
+
+	//获取主引擎索性
+	method := "get"
+	masterOidList := []string{"1.3.6.1.4.1.3902.3.6002.1.3.1.6.0.0.3", "1.3.6.1.4.1.3902.3.6002.1.3.1.6.0.0.4"}
+	var snmpPDUs []gosnmp.SnmpPDU
+	masterIndex := ""
+	for _, masterOid := range masterOidList {
+		for i := 0; i < retry; i++ {
+			snmpPDUs, err = RunSnmp(ip, community, masterOid, method, timeout)
+			if len(snmpPDUs) > 0 {
+				if snmpPDUs[0].Value.(int) == 0 {
+					runes := []rune(snmpPDUs[0].Name)
+					masterIndex = string(runes[len(runes)-1])
+				}
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		if masterIndex != "" {
+			break
+		}
+	}
+	oid = oid + ".0.0." + masterIndex + ".0"
+	for i := 0; i < retry; i++ {
+		snmpPDUs, err = RunSnmp(ip, community, oid, method, timeout)
+		if len(snmpPDUs) > 0 {
+			value = snmpPDUs[0].Value.(int)
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	return value, err
